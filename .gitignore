@@ -1,0 +1,6 @@
+node_modules/
+.env
+data/sendlog.json
+*.log
+.DS_Store
+data/waitlist.json

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en-ZA">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>AutoMailer — Coming soon</title>
+  <meta name="description" content="AutoMailer sends individualized emails from a JSON upload — never CC, never BCC, with a per-recipient report. Coming soon. Join the waitlist for early access." />
+
+  <link rel="canonical" href="https://automailer.yourdomain.com/" />
+
+  <meta name="robots" content="index, follow" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="AutoMailer — Coming soon" />
+  <meta property="og:description" content="Send individualized emails from a JSON upload. Never CC, never BCC. Join the waitlist for early access." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://automailer.yourdomain.com/" />
+  <meta property="og:image" content="https://automailer.yourdomain.com/social-preview.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="AutoMailer — Send to everyone. One at a time." />
+  <meta property="og:site_name" content="AutoMailer" />
+  <meta property="og:locale" content="en_ZA" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="AutoMailer — Coming soon" />
+  <meta name="twitter:description" content="Send individualized emails from a JSON upload. Never CC, never BCC. Join the waitlist for early access." />
+  <meta name="twitter:image" content="https://automailer.yourdomain.com/social-preview.jpg" />
+  <meta name="twitter:image:alt" content="AutoMailer — Send to everyone. One at a time." />
+
+  <!-- Favicons -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <meta name="theme-color" content="#0A0A0A" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- Structured data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "AutoMailer",
+    "url": "https://automailer.yourdomain.com/",
+    "image": "https://automailer.yourdomain.com/social-preview.jpg",
+    "operatingSystem": "Web",
+    "applicationCategory": "DeveloperApplication",
+    "inLanguage": "en-ZA",
+    "description": "AutoMailer sends individualized emails from a JSON upload. Upload a top-level array of email addresses, write a subject and body, and each recipient receives a separate email — never CC, never BCC.",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "ZAR"
+    },
+    "creator": {
+      "@type": "Organization",
+      "name": "AutoMailer"
+    }
+  }
+  </script>
+</head>
+<body>
+  <canvas id="grid-canvas" aria-hidden="true"></canvas>
+
+  <nav class="nav" aria-label="Primary">
+    <div class="nav__inner">
+      <a href="/" class="brand" aria-label="AutoMailer home">
+        <span class="brand__dot" aria-hidden="true"></span>
+        <span>AutoMailer</span>
+      </a>
+      <div class="nav__links">
+        <a href="#how">How it works</a>
+        <a href="#preview">Preview</a>
+        <a href="#waitlist" class="nav__cta">Get notified</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="container hero__inner">
+        <p class="eyebrow">Coming soon — join the waitlist</p>
+        <h1 class="hero__title" id="hero-title">
+          Send to everyone.<br />
+          <span class="hero__title-muted">One at a time.</span>
+        </h1>
+        <p class="hero__sub">
+          Upload a JSON array of email addresses, write a subject and body, and
+          AutoMailer sends each one individually — never CC, never BCC, never a
+          shared recipient list. Invalid entries are skipped and reported. Launching soon.
+        </p>
+        <div class="hero__actions">
+          <a href="#waitlist" class="btn btn--primary">Get notified</a>
+          <a href="#how" class="btn btn--ghost">How it works</a>
+        </div>
+        <div class="hero__stats" aria-label="At a glance">
+          <div class="stat"><span class="stat__num">1:1</span><span class="stat__label">Per-recipient sends</span></div>
+          <div class="stat"><span class="stat__num">2s</span><span class="stat__label">Between sends</span></div>
+          <div class="stat"><span class="stat__num">50</span><span class="stat__label">Per 24 hours</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="demo" id="preview" aria-labelledby="preview-title">
+      <div class="container">
+        <div class="section-head">
+          <h2 class="section-title" id="preview-title">See what you get</h2>
+          <p class="section-sub">A per-recipient report. No CC, no BCC, no guessing who received what.</p>
+        </div>
+        <div class="media-frame media-frame--report" role="img" aria-label="Example AutoMailer report showing four sent, one failed, and one skipped recipient">
+          <div class="report-mock">
+            <div class="report-mock__head">
+              <span class="report-mock__title">Report</span>
+              <span class="report-mock__summary">
+                <span><strong>4</strong> sent</span>
+                <span class="report-mock__sep">·</span>
+                <span><strong>1</strong> failed</span>
+                <span class="report-mock__sep">·</span>
+                <span><strong>1</strong> skipped</span>
+              </span>
+            </div>
+            <ul class="report-mock__list">
+              <li class="report-mock__row report-mock__row--sent">
+                <span class="report-mock__dot" aria-hidden="true"></span>
+                <span class="report-mock__email">alice@example.com</span>
+                <span class="report-mock__label">sent</span>
+              </li>
+              <li class="report-mock__row report-mock__row--sent">
+                <span class="report-mock__dot" aria-hidden="true"></span>
+                <span class="report-mock__email">bob@example.com</span>
+                <span class="report-mock__label">sent</span>
+              </li>
+              <li class="report-mock__row report-mock__row--sent">
+                <span class="report-mock__dot" aria-hidden="true"></span>
+                <span class="report-mock__email">carol@example.org</span>
+                <span class="report-mock__label">sent</span>
+              </li>
+              <li class="report-mock__row report-mock__row--failed">
+                <span class="report-mock__dot" aria-hidden="true"></span>
+                <span class="report-mock__email">dave@example.net</span>
+                <span class="report-mock__label">failed</span>
+                <span class="report-mock__error">Mailbox full — will retry later</span>
+              </li>
+              <li class="report-mock__row report-mock__row--sent">
+                <span class="report-mock__dot" aria-hidden="true"></span>
+                <span class="report-mock__email">erin@example.co.za</span>
+                <span class="report-mock__label">sent</span>
+              </li>
+              <li class="report-mock__row report-mock__row--skipped">
+                <span class="report-mock__dot" aria-hidden="true"></span>
+                <span class="report-mock__email">oops</span>
+                <span class="report-mock__label">skipped</span>
+                <span class="report-mock__error">Invalid email format</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="how" id="how" aria-labelledby="how-title">
+      <div class="container">
+        <div class="section-head">
+          <h2 class="section-title" id="how-title">How it works</h2>
+          <p class="section-sub">Three steps. No accounts, no database, no surprises.</p>
+        </div>
+        <div class="bento">
+          <article class="card card--wide">
+            <div class="card__num">01</div>
+            <h3 class="card__title">Upload a JSON file</h3>
+            <p class="card__body">A top-level array of email strings. Anything invalid — a typo, a stray object, a duplicate — is skipped and reported. The rest still send.</p>
+            <div class="card__visual" aria-hidden="true"><code>["a@x.com", "b@y.com", "oops"]</code></div>
+          </article>
+          <article class="card">
+            <div class="card__num">02</div>
+            <h3 class="card__title">Write your message</h3>
+            <p class="card__body">Subject and HTML body. The same message goes to every valid recipient, one email at a time with a 2-second gap.</p>
+          </article>
+          <article class="card">
+            <div class="card__num">03</div>
+            <h3 class="card__title">Review the report</h3>
+            <p class="card__body">Per-recipient success, failure, or skipped. Failures don't stop the loop — you get the full picture at the end.</p>
+          </article>
+          <article class="card card--accent">
+            <div class="card__num">→</div>
+            <h3 class="card__title">Launching soon</h3>
+            <p class="card__body">Join the waitlist and we'll let you know the moment it's ready.</p>
+            <a href="#waitlist" class="btn btn--primary btn--sm">Get notified</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta-band" id="waitlist" aria-labelledby="waitlist-title">
+      <div class="container cta-band__inner">
+        <h2 class="cta-band__title" id="waitlist-title">Be first to send.</h2>
+        <p class="cta-band__sub">Drop your email and we'll ping you at launch. No spam, ever.</p>
+        <form class="waitlist-form" id="waitlist-form" novalidate>
+          <label for="waitlist-email" class="waitlist-form__label">Email address</label>
+          <div class="waitlist-form__row">
+            <input
+              id="waitlist-email"
+              name="email"
+              type="email"
+              class="waitlist-form__input"
+              placeholder="you@example.com"
+              autocomplete="email"
+              required
+            />
+            <button type="submit" class="btn btn--invert" id="waitlist-btn">Notify me</button>
+          </div>
+          <p class="waitlist-form__status" id="waitlist-status" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="brand brand--sm">
+        <span class="brand__dot" aria-hidden="true"></span>
+        <span>AutoMailer</span>
+      </div>
+      <p class="footer__meta">Built with Node, Express, and Nodemailer.</p>
+    </div>
+  </footer>
+
+  <script src="grid.js" defer></script>
+  <script src="waitlist.js" defer></script>
+</body>
+</html>

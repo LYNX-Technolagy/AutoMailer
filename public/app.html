@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Send — AutoMailer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+  <canvas id="grid-canvas" aria-hidden="true"></canvas>
+
+  <nav class="nav" aria-label="Primary">
+    <div class="nav__inner">
+      <a href="/" class="brand" aria-label="AutoMailer home"><span class="brand__dot" aria-hidden="true"></span><span>AutoMailer</span></a>
+      <div class="nav__right">
+        <button type="button" class="account-chip" id="account-chip" aria-haspopup="dialog" aria-controls="settings-modal" aria-expanded="false">
+          <span class="account-chip__dot" data-state="disconnected" aria-hidden="true"></span>
+          <span class="account-chip__label" id="account-chip-label">Connect Gmail</span>
+        </button>
+        <a href="/" class="nav__back">← Back</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="app-main">
+    <div class="app-grid">
+      <form class="form" id="send-form" novalidate>
+        <div class="form__head">
+          <h1 class="form__title">Send emails</h1>
+          <p class="form__sub" id="form-sub">One email per recipient. No CC, no BCC.</p>
+        </div>
+
+        <div class="field">
+          <label for="from-name" class="field__label">From name <span class="field__hint">(optional)</span></label>
+          <input id="from-name" name="fromName" type="text" class="field__input" placeholder="Luvo" autocomplete="off" />
+        </div>
+
+        <div class="field">
+          <label for="file" class="field__label">Recipients JSON</label>
+          <div class="dropzone" id="dropzone">
+            <input id="file" name="file" type="file" accept=".json,application/json" class="dropzone__input" />
+            <div class="dropzone__inner">
+              <span class="dropzone__icon" aria-hidden="true">↑</span>
+              <span class="dropzone__text">Drop a <code>.json</code> file or click to browse</span>
+              <span class="dropzone__meta">Max 1MB · top-level array of email strings</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="subject" class="field__label">Subject</label>
+          <input id="subject" name="subject" type="text" class="field__input" placeholder="A quick note" autocomplete="off" />
+        </div>
+
+        <div class="field">
+          <label for="body" class="field__label">Body <span class="field__hint">(HTML allowed)</span></label>
+          <textarea id="body" name="body" class="field__input field__input--area" rows="8" placeholder="&lt;p&gt;Hi there,&lt;/p&gt;"></textarea>
+        </div>
+
+        <div class="form__actions">
+          <button type="submit" class="btn btn--primary" id="send-btn" disabled>Send emails</button>
+          <span class="form__note">Up to 50 emails per 24 hours.</span>
+        </div>
+      </form>
+
+      <aside class="results" id="results" aria-live="polite">
+        <div class="results__head"><h2 class="results__title">Report</h2></div>
+        <div class="results__empty">
+          <p class="results__empty-title">No sends yet</p>
+          <p class="results__empty-sub">Results will appear here after you send.</p>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <!-- Settings modal -->
+  <div class="modal-backdrop" id="settings-backdrop" hidden>
+    <div class="modal" id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
+      <div class="modal__head">
+        <h2 class="modal__title" id="settings-title">Gmail connection</h2>
+        <button type="button" class="modal__close" id="settings-close" aria-label="Close settings">×</button>
+      </div>
+      <div class="modal__body">
+        <p class="modal__sub" id="settings-sub">
+          Your App Password is stored in server memory for this session only, and is cleared after 1 hour of inactivity.
+        </p>
+
+        <form class="connect-form" id="connect-form" novalidate>
+          <div class="field">
+            <label for="gmail-user" class="field__label">Gmail address</label>
+            <input id="gmail-user" name="gmailUser" type="email" class="field__input" placeholder="you@gmail.com" autocomplete="username" required />
+          </div>
+          <div class="field">
+            <label for="app-password" class="field__label">App Password</label>
+            <input id="app-password" name="appPassword" type="password" class="field__input" placeholder="16-character App Password" autocomplete="off" required />
+            <span class="field__hint">
+              Generate one at
+              <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">myaccount.google.com/apppasswords</a>.
+              Not your normal Gmail password.
+            </span>
+          </div>
+          <div class="modal__error" id="connect-error" role="alert" hidden></div>
+          <div class="modal__actions">
+            <button type="button" class="btn btn--ghost" id="disconnect-btn" hidden>Disconnect</button>
+            <button type="submit" class="btn btn--primary" id="connect-btn">Connect Gmail</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="grid.js" defer></script>
+  <script src="app.js" defer></script>
+</body>
+</html>
