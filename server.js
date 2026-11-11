@@ -413,7 +413,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Unexpected server error.' });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`AutoMailer running at http://localhost:${PORT}`);
   console.log(`Mode: ${DRY_RUN ? 'DRY RUN (no emails will be sent)' : 'LIVE (SMTP enabled)'}`);
 });
