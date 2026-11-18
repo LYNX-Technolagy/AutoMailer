@@ -1,6 +1,6 @@
 node_modules/
 .env
 data/sendlog.json
+data/waitlist.json
 *.log
 .DS_Store
-data/waitlist.json

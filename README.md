@@ -1,13 +1,14 @@
 # AutoMailer
 
-Upload a JSON array of email addresses, write a subject and body, and AutoMailer sends each recipient a **separate, individual email** — never CC, never BCC, never a shared recipient list.
+Upload a JSON array of email addresses, write a subject and body, and AutoMailer sends each recipient a **separate, individual email** — never CC, never BCC. Self-hosted, open source, free.
 
-- **Sequential sends** with a 2-second delay between each (Gmail SMTP rate-limit safety).
+- **Sequential sends** with a 2-second delay between each.
 - **Failures don't stop the loop** — each recipient's outcome is reported independently.
-- **Live progress** via Server-Sent Events: watch each row flip from `queued` to `sent` / `failed` / `skipped` in real time.
-- **Validation everywhere** — invalid emails, duplicate addresses, malformed JSON, and quota overflow are all caught and reported.
-- **Quota protection** — 50 successful sends per rolling 24-hour window, persisted across restarts.
-- **Monochrome UI** with a cursor-distorted grid background.
+- **Live progress** via Server-Sent Events.
+- **Validation everywhere** — invalid emails, duplicates, malformed JSON, and quota overflow are all caught and reported.
+- **50 successful sends per rolling 24 hours** (per install).
+
+Built by [LYNX Technolagy](mailto:lynxtechza@gmail.com).
 
 ---
 
@@ -18,43 +19,160 @@ Upload a JSON array of email addresses, write a subject and body, and AutoMailer
 
 ---
 
-## 1. Get a Gmail App Password
-
-You **cannot** use your normal Gmail password. Gmail requires an "App Password" for SMTP clients like Nodemailer.
-
-### Step-by-step
-
-1. **Enable 2-Step Verification first.** App Passwords only exist if 2FA is on.
-   1. Go to <https://myaccount.google.com/security>
-   2. Under "How you sign in to Google", click **2-Step Verification**.
-   3. Follow the prompts (phone number, SMS or authenticator app).
-   4. Confirm it shows **"2-Step Verification is on"**.
-
-2. **Generate the App Password.**
-   1. Go to <https://myaccount.google.com/apppasswords> (you must be signed in).
-   2. In the **App name** field, type something memorable like `AutoMailer`.
-   3. Click **Create**.
-   4. Google displays a **16-character password** in a yellow box, e.g. `abcd efgh ijkl mnop`.
-   5. **Copy it now** — Google will never show it again. The spaces are cosmetic; you can paste it with or without them, but the code strips spaces, so paste it however it comes.
-   6. Click **Done**.
-
-3. **If you don't see the App Passwords page:**
-   - 2-Step Verification isn't enabled yet (step 1 above), **or**
-   - Your Google account is a **Workspace** account and the admin disabled App Passwords. In that case, use a personal Gmail account, or ask your admin to allow "Less secure apps / App Passwords".
-
-4. **If you see "The setting you are looking for is not available for your account":**
-   - Same cause — 2FA off, or Workspace admin policy. Personal accounts with 2FA on always have access.
-
----
-
-## 2. Set up the project
+## Quick start
 
 ```bash
-# Clone or download the project
+git clone https://github.com/LYNX-Technolagy/AutoMailer.git
 cd AutoMailer
-
-# Install dependencies
 npm install
+npm run setup
+npm run dev
+```
 
-# Copy the env template
-cp .env.example .env
+Then open http://localhost:3000/app, click Connect Gmail in the top-right, and follow the instructions in the modal.
+
+npm run setup asks two things — a port (default 3000) and whether to enable dry-run mode — then writes a .env file with a generated session secret. You never edit .env by hand.
+
+# Getting a Gmail App Password
+You can't use your normal Gmail password. Gmail requires a 16-character App Password for SMTP clients.
+The app's Connect Gmail modal has these steps inline, but here they are for reference:
+
+### 1. Enable 2-Step Verification first. App Passwords only exist if 2FA is on.
+* Go to https://myaccount.google.com/security
+
+* Under "How you sign in to Google", click 2-Step Verification
+
+* Follow the prompts
+
+* Confirm it shows "2-Step Verification is on"
+
+
+
+### 2. Generate the App Password.
+
+- Go to https://myaccount.google.com/apppasswords
+
+- Type a name — anything, like AutoMailer — and click Create
+
+- Google shows a 16-character password. Copy it now — Google will never show it again.
+
+- Click Done
+
+### 3. If you don't see the App Passwords page:
+
+- 2-Step Verification isn't enabled yet, or
+
+- Your Google account is a Workspace account and your admin disabled App Passwords. Use a personal Gmail account instead.
+
+---
+# How sending works
+1. Open http://localhost:3000/app.
+
+2. Click Connect Gmail and paste your Gmail address + App Password.
+
+   - In normal mode, the credentials are verified against Gmail before they're stored.
+  
+   - The credential lives in server memory only, tied to your session. It's never written to disk.
+
+   - Sessions expire 1 hour after you connect. You'll re-enter your App Password then.
+
+3. Upload a JSON file (see format below), write a subject and body, click Send emails.
+
+4. Watch each recipient's row update live: sent, failed, or skipped.
+
+# JSON format
+The uploaded file must be a top-level JSON array where every element is a string:
+
+```json
+["alice@example.com", "bob@example.com", "carol@example.org"]  
+```
+
+#### Rejected with a clear error:
+#### 
+- Objects, nested arrays, or a top-level non-array ({"emails": [...]}, "alice@...")
+  
+- Any non-string element (["a@b.com", 42])
+  
+- Invalid JSON syntax
+ 
+- Files over 1 MB, or non-.json extensions
+ 
+#### Handled gracefully (skipped + reported):
+ #### 
+- Emails that fail a standard regex
+Duplicate addresses (case-insensitive — A@b.com and a@b.com count as one)
+sam - ~~~``
+
+# Enviromental variables
+.env is generated by npm run setup. If you want to edit it by hand:
+
+
+# Project structure
+``` text
+AutoMailer/
+├── server.js              # Express app, routes, send loop, SSE
+├── setup.js               # First-run .env generator
+├── convert-assets.js      # SVG → PNG/JPG converter (dev only)
+├── lib/
+│   ├── quota.js           # 24h rolling quota
+│   └── jobs.js            # In-memory job store + event emitter
+├── public/
+│   ├── index.html         # Landing page
+│   ├── app.html           # The working app
+│   ├── app.js             # Frontend wiring (fetch + SSE)
+│   ├── grid.js            # Cursor-distorted grid background
+│   ├── styles.css         # Landing styles
+│   ├── app.css            # App styles
+│   ├── favicon.svg        # Source favicon
+│   ├── social-preview.svg # Source OG card
+│   ├── favicon-32x32.png  # Generated
+│   ├── apple-touch-icon.png
+│   ├── social-preview.png
+│   └── social-preview.jpg
+├── data/                  # Quota + waitlist state (gitignored)
+├── sample.json
+├── sample-clean.json
+├── netlify.toml
+├── .env.example
+├── .gitignore
+├── package.json
+└── README.md
+
+```
+
+
+# Troubleshooting
+```Error: Invalid login: 535-5.7.8 Username and Password not accepted```
+
+ - The App Password is wrong or revoked. Generate a new one.
+
+ - You pasted your normal Gmail password — that doesn't work. Use the App Password.
+
+ - 2-Step Verification is off — App Passwords only exist when 2FA is on.
+
+```Error: connect ETIMEDOUT```
+
+- Firewall blocking outbound port 465. Try switching to port 587 with secure: false in buildTransporter() in server.js (STARTTLS).
+
+- Qta exceeded: 50 emails per 24 hours
+
+- Dete data/sendlog.json and restart (dev only). Or wait 24h.
+
+
+#### Emails land in spam
+ 
+- Expected for a new sender with no domain reputation. Warm up by sending to yourself first. For production volume, use a dedicated transactional provider.
+
+```SESSION_SECRET``` warning at startup
+- ```npm run setup``` didn't run, or ```.env``` is missing. ```Run npm run setup.```
+
+#### SSE never fires / "Connection lost" banner
+
+Run locally over ```http://localhost.``` Some corporate proxies buffer SSE. On localhost this never happens.
+
+
+# License
+ MIT.
+
+
+

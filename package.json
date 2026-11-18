@@ -4,6 +4,8 @@
   "description": "Send individualized emails from a JSON upload",
   "main": "server.js",
   "scripts": {
+    "setup": "node setup.js",
+    "assets": "node assets.js",
     "start": "node server.js",
     "dev": "node --watch server.js"
   },

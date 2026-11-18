@@ -1,22 +1,26 @@
 <!DOCTYPE html>
 <html lang="en-ZA">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <title>AutoMailer — Coming soon</title>
-  <meta name="description" content="AutoMailer sends individualized emails from a JSON upload — never CC, never BCC, with a per-recipient report. Coming soon. Join the waitlist for early access." />
+  <title>AutoMailer — Self-hosted, individualized email sending</title>
+  <meta name="description"
+    content="Clone the repo, connect your Gmail, and send individualized emails from a JSON upload. Never CC, never BCC — with a per-recipient report. Self-hosted, open source, free." />
 
-  <link rel="canonical" href="https://automailers.netlify.app/" />
+  <link rel="canonical" href="https://github.com/LYNX-Technolagy/AutoMailer" />
 
   <meta name="robots" content="index, follow" />
 
   <!-- Open Graph -->
-  <meta property="og:title" content="AutoMailer — Coming soon" />
-  <meta property="og:description" content="Send individualized emails from a JSON upload. Never CC, never BCC. Join the waitlist for early access." />
+  <meta property="og:title" content="AutoMailer — Self-hosted, individualized email sending" />
+  <meta property="og:description"
+    content="Clone the repo, connect your Gmail, and send individualized emails from a JSON upload. Never CC, never BCC." />
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://automailers.netlify.app/" />
-  <meta property="og:image" content="https://automailers.netlify.app/social-preview.jpg" />
+  <meta property="og:url" content="https://github.com/LYNX-Technolagy/AutoMailer" />
+  <meta property="og:image"
+    content="https://raw.githubusercontent.com/LYNX-Technolagy/AutoMailer/main/public/social-preview.jpg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="AutoMailer — Send to everyone. One at a time." />
@@ -25,21 +29,25 @@
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="AutoMailer — Coming soon" />
-  <meta name="twitter:description" content="Send individualized emails from a JSON upload. Never CC, never BCC. Join the waitlist for early access." />
-  <meta name="twitter:image" content="https://automailers.netlify.app/social-preview.jpg" />
+  <meta name="twitter:title" content="AutoMailer — Self-hosted, individualized email sending" />
+  <meta name="twitter:description"
+    content="Clone the repo, connect your Gmail, and send individualized emails from a JSON upload. Never CC, never BCC." />
+  <meta name="twitter:image"
+    content="https://raw.githubusercontent.com/LYNX-Technolagy/AutoMailer/main/public/social-preview.jpg" />
   <meta name="twitter:image:alt" content="AutoMailer — Send to everyone. One at a time." />
 
   <!-- Favicons -->
-  <link rel="icon" type="image/svg+xml" href="/public/favicon.svg" />
-  <link rel="icon" type="image/png" sizes="32x32" href="/public/favicon-32x32.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="/public/apple-touch-icon.png" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <meta name="theme-color" content="#0A0A0A" />
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap"
+    rel="stylesheet" />
 
   <!-- Styles -->
   <link rel="stylesheet" href="styles.css" />
@@ -50,12 +58,12 @@
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": "AutoMailer",
-    "url": "https://automailers.netlify.app/",
-    "image": "https://automailers.netlify.app/social-preview.jpg",
+    "url": "https://github.com/LYNX-Technolagy/AutoMailer",
+    "image": "https://raw.githubusercontent.com/LYNX-Technolagy/AutoMailer/main/public/social-preview.jpg",
     "operatingSystem": "Web",
     "applicationCategory": "DeveloperApplication",
     "inLanguage": "en-ZA",
-    "description": "AutoMailer sends individualized emails from a JSON upload. Upload a top-level array of email addresses, write a subject and body, and each recipient receives a separate email — never CC, never BCC.",
+    "description": "AutoMailer is a self-hosted web app for sending individualized emails from a JSON upload. Never CC, never BCC, with a per-recipient report.",
     "offers": {
       "@type": "Offer",
       "price": "0",
@@ -63,11 +71,12 @@
     },
     "creator": {
       "@type": "Organization",
-      "name": "AutoMailer"
+      "name": "LYNX Technolagy"
     }
   }
   </script>
 </head>
+
 <body>
   <canvas id="grid-canvas" aria-hidden="true"></canvas>
 
@@ -79,8 +88,10 @@
       </a>
       <div class="nav__links">
         <a href="#how">How it works</a>
-        <a href="#preview">Preview</a>
-        <a href="#waitlist" class="nav__cta">Get notified</a>
+        <a href="#get-started">Get started</a>
+        <a href="#help">Help</a>
+        <a href="https://github.com/LYNX-Technolagy/AutoMailer" target="_blank" rel="noopener" class="nav__cta">View on
+          GitHub</a>
       </div>
     </div>
   </nav>
@@ -88,7 +99,7 @@
   <main>
     <section class="hero" aria-labelledby="hero-title">
       <div class="container hero__inner">
-        <p class="eyebrow">Coming soon — join the waitlist</p>
+        <p class="eyebrow">Self-hosted · Open source · Free</p>
         <h1 class="hero__title" id="hero-title">
           Send to everyone.<br />
           <span class="hero__title-muted">One at a time.</span>
@@ -96,11 +107,13 @@
         <p class="hero__sub">
           Upload a JSON array of email addresses, write a subject and body, and
           AutoMailer sends each one individually — never CC, never BCC, never a
-          shared recipient list. Invalid entries are skipped and reported. Launching soon.
+          shared recipient list. Run it yourself in a few minutes. Your Gmail,
+          your machine, your data.
         </p>
         <div class="hero__actions">
-          <a href="#waitlist" class="btn btn--primary">Get notified</a>
-          <a href="#how" class="btn btn--ghost">How it works</a>
+          <a href="#get-started" class="btn btn--primary">Get started</a>
+          <a href="https://github.com/LYNX-Technolagy/AutoMailer" target="_blank" rel="noopener"
+            class="btn btn--ghost">View on GitHub</a>
         </div>
         <div class="hero__stats" aria-label="At a glance">
           <div class="stat"><span class="stat__num">1:1</span><span class="stat__label">Per-recipient sends</span></div>
@@ -116,7 +129,8 @@
           <h2 class="section-title" id="preview-title">See what you get</h2>
           <p class="section-sub">A per-recipient report. No CC, no BCC, no guessing who received what.</p>
         </div>
-        <div class="media-frame media-frame--report" role="img" aria-label="Example AutoMailer report showing four sent, one failed, and one skipped recipient">
+        <div class="media-frame media-frame--report" role="img"
+          aria-label="Example AutoMailer report showing four sent, one failed, and one skipped recipient">
           <div class="report-mock">
             <div class="report-mock__head">
               <span class="report-mock__title">Report</span>
@@ -177,49 +191,120 @@
           <article class="card card--wide">
             <div class="card__num">01</div>
             <h3 class="card__title">Upload a JSON file</h3>
-            <p class="card__body">A top-level array of email strings. Anything invalid — a typo, a stray object, a duplicate — is skipped and reported. The rest still send.</p>
+            <p class="card__body">A top-level array of email strings. Anything invalid — a typo, a stray object, a
+              duplicate — is skipped and reported. The rest still send.</p>
             <div class="card__visual" aria-hidden="true"><code>["a@x.com", "b@y.com", "oops"]</code></div>
           </article>
           <article class="card">
             <div class="card__num">02</div>
             <h3 class="card__title">Write your message</h3>
-            <p class="card__body">Subject and HTML body. The same message goes to every valid recipient, one email at a time with a 2-second gap.</p>
+            <p class="card__body">Subject and HTML body. The same message goes to every valid recipient, one email at a
+              time with a 2-second gap.</p>
           </article>
           <article class="card">
             <div class="card__num">03</div>
             <h3 class="card__title">Review the report</h3>
-            <p class="card__body">Per-recipient success, failure, or skipped. Failures don't stop the loop — you get the full picture at the end.</p>
+            <p class="card__body">Per-recipient success, failure, or skipped. Failures don't stop the loop — you get the
+              full picture at the end.</p>
           </article>
           <article class="card card--accent">
             <div class="card__num">→</div>
-            <h3 class="card__title">Launching soon</h3>
-            <p class="card__body">Join the waitlist and we'll let you know the moment it's ready.</p>
-            <a href="#waitlist" class="btn btn--primary btn--sm">Get notified</a>
+            <h3 class="card__title">Run it yourself</h3>
+            <p class="card__body">No hosted service, no account. Clone the repo, connect your Gmail, send.</p>
+            <a href="#get-started" class="btn btn--primary btn--sm">Get started</a>
           </article>
         </div>
       </div>
     </section>
 
-    <section class="cta-band" id="waitlist" aria-labelledby="waitlist-title">
+    <section class="get-started" id="get-started" aria-labelledby="get-started-title">
+      <div class="container">
+        <div class="section-head">
+          <h2 class="section-title" id="get-started-title">Get started</h2>
+          <p class="section-sub">
+            Runs on your machine in a few minutes. You'll need
+            <a href="https://nodejs.org" target="_blank" rel="noopener">Node.js 20 or newer</a>
+            and a Gmail account with an App Password.
+          </p>
+        </div>
+
+        <ol class="steps-list">
+          <li class="step-item">
+            <div class="step-item__head">
+              <span class="step-item__num">1</span>
+              <h3 class="step-item__title">Clone the repository</h3>
+            </div>
+            <p class="step-item__body">Grab the code and install dependencies.</p>
+            <pre class="code-block"><code>git clone https://github.com/LYNX-Technolagy/AutoMailer.git
+cd AutoMailer
+npm install</code></pre>
+          </li>
+
+          <li class="step-item">
+            <div class="step-item__head">
+              <span class="step-item__num">2</span>
+              <h3 class="step-item__title">Run the setup script</h3>
+            </div>
+            <p class="step-item__body">
+              This prompts for a port and whether to enable dry-run mode, then writes
+              a <code>.env</code> file with a generated session secret. You never edit
+              <code>.env</code> by hand.
+            </p>
+            <pre class="code-block"><code>npm run setup</code></pre>
+          </li>
+
+          <li class="step-item">
+            <div class="step-item__head">
+              <span class="step-item__num">3</span>
+              <h3 class="step-item__title">Start the app</h3>
+            </div>
+            <p class="step-item__body">Launch the server.</p>
+            <pre class="code-block"><code>npm run dev</code></pre>
+            <p class="step-item__body">
+              Open <code>http://localhost:3000/app</code>. Click <strong>Connect Gmail</strong>
+              in the top-right — the modal walks you through generating an App Password,
+              step by step.
+            </p>
+          </li>
+        </ol>
+
+        <div class="get-started__note">
+          <p>
+            <strong>Prefer to test without sending?</strong> Answer "yes" to dry-run when running
+            <code>npm run setup</code>, or set <code>DRY_RUN=true</code> in <code>.env</code>.
+            The whole flow runs, but no emails go out.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="help" id="help" aria-labelledby="help-title">
+      <div class="container help__inner">
+        <div class="help__head">
+          <h2 class="section-title" id="help-title">Need help?</h2>
+          <p class="section-sub">Stuck on setup, or something's not working? Reach out.</p>
+        </div>
+        <div class="help__channels">
+          <a href="mailto:lynxtechza@gmail.com" class="help-card">
+            <span class="help-card__label">Email</span>
+            <span class="help-card__value">lynxtechza@gmail.com</span>
+            <span class="help-card__hint">Best for setup questions and bugs.</span>
+          </a>
+          <a href="https://github.com/LYNX-Technolagy/AutoMailer/issues" target="_blank" rel="noopener"
+            class="help-card">
+            <span class="help-card__label">GitHub Issues</span>
+            <span class="help-card__value">Open an issue</span>
+            <span class="help-card__hint">Public — helps others with the same problem.</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta-band" aria-labelledby="cta-title">
       <div class="container cta-band__inner">
-        <h2 class="cta-band__title" id="waitlist-title">Be first to send.</h2>
-        <p class="cta-band__sub">Drop your email and we'll ping you at launch. No spam, ever.</p>
-        <form class="waitlist-form" id="waitlist-form" novalidate>
-          <label for="waitlist-email" class="waitlist-form__label">Email address</label>
-          <div class="waitlist-form__row">
-            <input
-              id="waitlist-email"
-              name="email"
-              type="email"
-              class="waitlist-form__input"
-              placeholder="you@example.com"
-              autocomplete="email"
-              required
-            />
-            <button type="submit" class="btn btn--invert" id="waitlist-btn">Notify me</button>
-          </div>
-          <p class="waitlist-form__status" id="waitlist-status" role="status" aria-live="polite"></p>
-        </form>
+        <h2 class="cta-band__title" id="cta-title">Stop CC-ing everyone.</h2>
+        <p class="cta-band__sub">Self-host it in minutes. Your Gmail, your machine, your data.</p>
+        <a href="#get-started" class="btn btn--invert">Get started</a>
       </div>
     </section>
   </main>
@@ -230,11 +315,24 @@
         <span class="brand__dot" aria-hidden="true"></span>
         <span>AutoMailer</span>
       </div>
-      <p class="footer__meta">Built with Node, Express, and Nodemailer.</p>
+      <p class="footer__meta">Built by LYNX Technolagy. Node, Express, and Nodemailer.</p>
     </div>
   </footer>
 
+  <!-- Local launch prompt -->
+  <div class="launch-backdrop" id="launch-backdrop" hidden>
+    <div class="launch-modal" id="launch-modal" role="dialog" aria-modal="true" aria-labelledby="launch-title">
+      <h2 class="launch-modal__title" id="launch-title">You're running AutoMailer locally.</h2>
+      <p class="launch-modal__sub">Skip the landing page and go straight to the app.</p>
+      <div class="launch-modal__actions">
+        <button type="button" class="btn btn--ghost" id="launch-stay">Stay here</button>
+        <a href="/app" class="btn btn--primary" id="launch-go">Launch app →</a>
+      </div>
+    </div>
+  </div>
+
   <script src="grid.js" defer></script>
-  <script src="waitlist.js" defer></script>
+  <script src="launch.js" defer></script>
 </body>
+
 </html>

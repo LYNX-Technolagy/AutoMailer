@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-ZA">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -14,7 +14,10 @@
 
   <nav class="nav" aria-label="Primary">
     <div class="nav__inner">
-      <a href="/" class="brand" aria-label="AutoMailer home"><span class="brand__dot" aria-hidden="true"></span><span>AutoMailer</span></a>
+      <a href="/" class="brand" aria-label="AutoMailer home">
+        <span class="brand__dot" aria-hidden="true"></span>
+        <span>AutoMailer</span>
+      </a>
       <div class="nav__right">
         <button type="button" class="account-chip" id="account-chip" aria-haspopup="dialog" aria-controls="settings-modal" aria-expanded="false">
           <span class="account-chip__dot" data-state="disconnected" aria-hidden="true"></span>
@@ -76,17 +79,42 @@
     </div>
   </main>
 
-  <!-- Settings modal -->
   <div class="modal-backdrop" id="settings-backdrop" hidden>
     <div class="modal" id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
       <div class="modal__head">
-        <h2 class="modal__title" id="settings-title">Gmail connection</h2>
+        <h2 class="modal__title" id="settings-title">Connect Gmail</h2>
         <button type="button" class="modal__close" id="settings-close" aria-label="Close settings">×</button>
       </div>
       <div class="modal__body">
+
         <p class="modal__sub" id="settings-sub">
-          Your App Password is stored in server memory for this session only, and is cleared after 1 hour of inactivity.
+          AutoMailer sends email through your own Gmail account. Your App Password
+          is stored in server memory for this session only, and is cleared after
+          1 hour of inactivity.
         </p>
+
+        <details class="modal__help" id="settings-help">
+          <summary>How do I get an App Password?</summary>
+          <ol class="modal__steps">
+            <li>
+              Go to
+              <a href="https://myaccount.google.com/security" target="_blank" rel="noopener">myaccount.google.com/security</a>
+              and make sure <strong>2-Step Verification is on</strong>.
+              App Passwords only exist if 2FA is enabled.
+            </li>
+            <li>
+              Open
+              <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">myaccount.google.com/apppasswords</a>.
+            </li>
+            <li>Type a name — anything, like <code>AutoMailer</code> — and click <strong>Create</strong>.</li>
+            <li>Google shows a 16-character password. Copy it. You won't see it again.</li>
+            <li>Paste it below (spaces are fine — they get stripped).</li>
+          </ol>
+          <p class="modal__hint">
+            Not your normal Gmail password. If you see "The setting you are
+            looking for is not available," 2-Step Verification isn't enabled yet.
+          </p>
+        </details>
 
         <form class="connect-form" id="connect-form" novalidate>
           <div class="field">
@@ -96,11 +124,6 @@
           <div class="field">
             <label for="app-password" class="field__label">App Password</label>
             <input id="app-password" name="appPassword" type="password" class="field__input" placeholder="16-character App Password" autocomplete="off" required />
-            <span class="field__hint">
-              Generate one at
-              <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">myaccount.google.com/apppasswords</a>.
-              Not your normal Gmail password.
-            </span>
           </div>
           <div class="modal__error" id="connect-error" role="alert" hidden></div>
           <div class="modal__actions">

@@ -7,7 +7,7 @@ const express = require('express');
 const session = require('express-session');
 const MemoryStore = require('memorystore')(session);
 const multer = require('multer');
-const { Resend } = require('resend');
+const nodemailer = require('nodemailer');
 
 const quota = require('./lib/quota');
 const jobs = require('./lib/jobs');
@@ -19,18 +19,7 @@ const DELAY_MS = 2000;
 const MAX_FILE_SIZE = 1024 * 1024;
 const SESSION_MAX_AGE_MS = 60 * 60 * 1000; // 1 hour
 
-// The verified sender address in your Resend account.
-// Must be on a domain you've verified in the Resend dashboard.
-const RESEND_FROM = process.env.RESEND_FROM || 'AutoMailer <hello@yourdomain.com>';
-
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-
-// ---------- Resend client ----------
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
-if (!resend && !DRY_RUN) {
-  console.warn('[warn] RESEND_API_KEY is not set. /api/send will fail unless DRY_RUN=true.');
-}
 
 // ---------- Session secret ----------
 let sessionSecret = process.env.SESSION_SECRET;
@@ -85,7 +74,6 @@ const upload = multer({
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function sanitizeHeader(value) {
-  // Prevent CRLF header injection.
   return String(value).replace(/[\r\n]+/g, ' ').trim();
 }
 
@@ -121,6 +109,68 @@ function parseRecipients(buffer) {
   }
   return { recipients: data };
 }
+
+function getSessionCreds(req) {
+  const c = req.session && req.session.gmail;
+  if (!c || typeof c.user !== 'string' || typeof c.pass !== 'string') return null;
+  if (!c.user || !c.pass) return null;
+  return { user: c.user, pass: c.pass };
+}
+
+function buildTransporter(creds) {
+  return nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    auth: { user: creds.user, pass: creds.pass },
+  });
+}
+
+// ---------- Connect / disconnect / status ----------
+app.post('/api/connect', (req, res) => {
+  const { gmailUser, appPassword } = req.body || {};
+  if (typeof gmailUser !== 'string' || !EMAIL_RE.test(gmailUser.trim())) {
+    return res.status(400).json({ error: 'Enter a valid Gmail address.' });
+  }
+  if (typeof appPassword !== 'string' || appPassword.replace(/\s+/g, '').length !== 16) {
+    return res.status(400).json({
+      error: 'App Password must be 16 characters (spaces are ignored).',
+    });
+  }
+
+  const user = gmailUser.trim().toLowerCase();
+  const pass = appPassword.replace(/\s+/g, '');
+
+  if (DRY_RUN) {
+    req.session.gmail = { user, pass };
+    return res.json({ connected: true, email: user, verified: false, dryRun: true });
+  }
+
+  const transport = buildTransporter({ user, pass });
+  transport.verify((err) => {
+    if (err) {
+      return res.status(400).json({
+        error: 'Gmail rejected these credentials. Check the address and App Password.',
+        detail: err.message,
+      });
+    }
+    req.session.gmail = { user, pass };
+    return res.json({ connected: true, email: user, verified: true });
+  });
+});
+
+app.post('/api/disconnect', (req, res) => {
+  if (req.session) {
+    delete req.session.gmail;
+  }
+  res.json({ connected: false });
+});
+
+app.get('/api/connection', (req, res) => {
+  const creds = getSessionCreds(req);
+  if (!creds) return res.json({ connected: false });
+  res.json({ connected: true, email: creds.user });
+});
 
 // ---------- Waitlist (kept for future relaunch) ----------
 const WAITLIST_PATH = path.join(__dirname, 'data', 'waitlist.json');
@@ -160,10 +210,9 @@ app.post('/api/waitlist', (req, res) => {
 // ---------- POST /api/send ----------
 app.post('/api/send', (req, res) => {
   upload.single('file')(req, res, async (uploadErr) => {
-    if (!DRY_RUN && !resend) {
-      return res.status(500).json({
-        error: 'Server is not configured to send email (missing RESEND_API_KEY).',
-      });
+    const creds = getSessionCreds(req);
+    if (!creds) {
+      return res.status(401).json({ error: 'Connect your Gmail account first.' });
     }
 
     if (uploadErr) {
@@ -190,7 +239,6 @@ app.post('/api/send', (req, res) => {
       return res.status(400).json({ error: 'The array is empty — nothing to send.' });
     }
 
-    // Validate + dedupe.
     const planned = [];
     const skipped = [];
     const seen = new Set();
@@ -213,7 +261,6 @@ app.post('/api/send', (req, res) => {
       return res.status(400).json({ error: 'Nothing to send.' });
     }
 
-    // Quota check (successful sends only).
     const usage = quota.getUsage();
     if (planned.length > usage.remaining) {
       return res.status(429).json({
@@ -223,9 +270,7 @@ app.post('/api/send', (req, res) => {
       });
     }
 
-    // Create job.
     const job = jobs.createJob();
-
     const preSkipped = skipped.map((s, i) => ({ ...s, index: i }));
 
     jobs.emit(job, 'start', {
@@ -233,10 +278,11 @@ app.post('/api/send', (req, res) => {
       planned,
       preSkipped,
       quota: usage,
+      sender: creds.user,
     });
 
-    // Kick off background send loop.
     runSendLoop(job, {
+      creds,
       planned,
       skippedCount: skipped.length,
       subject,
@@ -253,12 +299,17 @@ app.post('/api/send', (req, res) => {
 });
 
 // ---------- Background send loop ----------
-async function runSendLoop(job, { planned, skippedCount, subject, body, fromName }) {
+async function runSendLoop(job, { creds, planned, skippedCount, subject, body, fromName }) {
   const fromNameSafe = fromName ? sanitizeHeader(fromName).replace(/"/g, '') : '';
   const fromHeader = fromNameSafe
-    ? `${fromNameSafe} <${extractAddress(RESEND_FROM)}>`
-    : RESEND_FROM;
+    ? `"${fromNameSafe}" <${creds.user}>`
+    : creds.user;
   const textBody = htmlToText(body);
+
+  let transport = null;
+  if (!DRY_RUN) {
+    transport = buildTransporter(creds);
+  }
 
   for (let i = 0; i < planned.length; i++) {
     const email = planned[i];
@@ -268,15 +319,14 @@ async function runSendLoop(job, { planned, skippedCount, subject, body, fromName
         await sleep(200);
         result = { email, status: 'sent', messageId: `<dry-run-${Date.now()}-${i}@automailer>` };
       } else {
-        const { data, error } = await resend.emails.send({
+        const info = await transport.sendMail({
           from: fromHeader,
           to: email,
           subject: sanitizeHeader(subject),
-          html: body,
           text: textBody,
+          html: body,
         });
-        if (error) throw new Error(error.message || 'Resend rejected the send.');
-        result = { email, status: 'sent', messageId: data && data.id };
+        result = { email, status: 'sent', messageId: info.messageId };
       }
       quota.recordSuccess();
     } catch (err) {
@@ -295,14 +345,7 @@ async function runSendLoop(job, { planned, skippedCount, subject, body, fromName
   jobs.finish(job, 'done');
 }
 
-// Extract the bare address from a "Name <addr>" string, or return the string
-// unchanged if it's already just an address.
-function extractAddress(from) {
-  const match = String(from).match(/<([^>]+)>/);
-  return match ? match[1].trim() : String(from).trim();
-}
-
-// ---------- SSE: GET /api/send/:jobId/events ----------
+// ---------- SSE ----------
 app.get('/api/send/:jobId/events', (req, res) => {
   const job = jobs.get(req.params.jobId);
   if (!job) {
@@ -346,10 +389,11 @@ app.get('/api/quota', (req, res) => {
 });
 
 app.get('/api/health', (req, res) => {
+  const creds = getSessionCreds(req);
   res.json({
     ok: true,
     dryRun: DRY_RUN,
-    resendConfigured: Boolean(resend),
+    connected: Boolean(creds),
     quota: quota.getUsage(),
   });
 });
@@ -360,7 +404,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Unexpected server error.' });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`AutoMailer running on port ${PORT}`);
-  console.log(`Mode: ${DRY_RUN ? 'DRY RUN (no emails will be sent)' : 'LIVE (Resend enabled)'}`);
+app.listen(PORT, () => {
+  console.log(`AutoMailer running at http://localhost:${PORT}`);
+  console.log(`Mode: ${DRY_RUN ? 'DRY RUN (no emails will be sent)' : 'LIVE (SMTP enabled)'}`);
 });

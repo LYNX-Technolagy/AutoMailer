@@ -5,8 +5,8 @@
 
   const backdrop = document.getElementById('settings-backdrop');
   const modal = document.getElementById('settings-modal');
-  const modalTitle = document.getElementById('settings-title');
   const modalSub = document.getElementById('settings-sub');
+  const modalHelp = document.getElementById('settings-help');
   const modalClose = document.getElementById('settings-close');
 
   const connectForm = document.getElementById('connect-form');
@@ -27,19 +27,52 @@
   const sendBtn = document.getElementById('send-btn');
   const results = document.getElementById('results');
   const quotaNote = document.querySelector('.form__note');
+  const demoBanner = document.getElementById('demo-banner');
 
   if (!chip || !backdrop || !modal || !form || !sendBtn || !results) return;
 
   const DEFAULT_DROPZONE_HTML = dropzoneInner ? dropzoneInner.innerHTML : '';
-  const DEFAULT_SUB = 'Your App Password is stored in server memory for this session only, and is cleared after 1 hour of inactivity.';
+  const DEFAULT_SUB = 'AutoMailer sends email through your own Gmail account. Your App Password is stored in server memory for this session only, and is cleared after 1 hour of inactivity.';
 
   let currentEventSource = null;
   let connected = false;
   let connectedEmail = '';
   let lastFocusedBeforeModal = null;
+  let helpAutoOpened = false;
+  let demoMode = false;
+
+  // ---------- Demo mode ----------
+  function enterDemoMode() {
+    demoMode = true;
+    connected = false;
+    if (demoBanner) demoBanner.hidden = false;
+    if (chip) chip.hidden = true;           // hide the connect chip
+    if (modalHelp) modalHelp.hidden = true; // irrelevant in demo
+    if (formSub) formSub.textContent = 'Demo mode — sending is simulated.';
+    if (quotaNote) quotaNote.textContent = 'Simulation only — no emails are sent.';
+    sendBtn.disabled = false;               // allow the simulated send
+  }
+
+  async function checkBackend() {
+    try {
+      const r = await fetch('/api/health', { cache: 'no-store' });
+      const data = await r.json();
+      if (!data || data.ok !== true) throw new Error('bad health response');
+      // Real backend present — normal flow
+      if (data.connected) {
+        // session may still be alive on reload
+        const c = await fetch('/api/connection').then((x) => x.ok ? x.json() : null);
+        if (c && c.connected) setConnected(true, c.email);
+      }
+      refreshQuota();
+    } catch {
+      enterDemoMode();
+    }
+  }
 
   // ---------- Connection state ----------
   function setConnected(isConnected, email) {
+    if (demoMode) return; // never in demo
     connected = isConnected;
     connectedEmail = email || '';
 
@@ -50,10 +83,9 @@
       sendBtn.disabled = false;
       if (formSub) formSub.textContent = `Sending individually as ${connectedEmail}.`;
       disconnectBtn.hidden = false;
-      connectBtn.textContent = 'Save';
-      modalTitle.textContent = 'Gmail connection';
+      connectBtn.textContent = 'Switch account';
       modalSub.textContent = `Connected as ${connectedEmail}. Disconnect below to clear your credentials, or enter a different account to switch.`;
-      // Prefill the email so the user can see which account is connected.
+      if (modalHelp) modalHelp.hidden = true;
       gmailUserInput.value = connectedEmail;
       appPasswordInput.value = '';
     } else {
@@ -64,26 +96,14 @@
       if (formSub) formSub.textContent = 'One email per recipient. No CC, no BCC.';
       disconnectBtn.hidden = true;
       connectBtn.textContent = 'Connect Gmail';
-      modalTitle.textContent = 'Gmail connection';
       modalSub.textContent = DEFAULT_SUB;
+      if (modalHelp) modalHelp.hidden = false;
     }
   }
-
-  async function refreshConnection() {
-    try {
-      const r = await fetch('/api/connection');
-      if (!r.ok) return setConnected(false);
-      const data = await r.json();
-      if (data.connected) setConnected(true, data.email);
-      else setConnected(false);
-    } catch {
-      setConnected(false);
-    }
-  }
-  refreshConnection();
 
   // ---------- Quota ----------
   async function refreshQuota() {
+    if (demoMode) return;
     try {
       const r = await fetch('/api/quota');
       if (!r.ok) return;
@@ -93,29 +113,29 @@
       }
     } catch {}
   }
-  refreshQuota();
 
-  // ---------- Modal open/close + focus trap ----------
-  const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  // ---------- Modal ----------
+  const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
 
   function openModal(opts = {}) {
+    if (demoMode) return;
     if (!backdrop.hidden) return;
     lastFocusedBeforeModal = document.activeElement;
     backdrop.hidden = false;
     modal.hidden = false;
     chip.setAttribute('aria-expanded', 'true');
 
-    // Clear transient error, optionally show an "expired" note.
     clearConnectError();
     if (opts.reason === 'expired') {
       showConnectError('Your session expired. Reconnect your Gmail account to continue.');
     }
 
-    // Focus first field.
-    requestAnimationFrame(() => {
-      gmailUserInput?.focus();
-    });
+    if (!connected && !helpAutoOpened && modalHelp) {
+      modalHelp.open = true;
+      helpAutoOpened = true;
+    }
 
+    requestAnimationFrame(() => gmailUserInput?.focus());
     document.addEventListener('keydown', onModalKeydown);
   }
 
@@ -131,11 +151,7 @@
   }
 
   function onModalKeydown(e) {
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      closeModal();
-      return;
-    }
+    if (e.key === 'Escape') { e.preventDefault(); closeModal(); return; }
     if (e.key !== 'Tab') return;
     const nodes = Array.from(modal.querySelectorAll(FOCUSABLE)).filter(
       (el) => !el.hidden && el.offsetParent !== null
@@ -143,20 +159,13 @@
     if (nodes.length === 0) return;
     const first = nodes[0];
     const last = nodes[nodes.length - 1];
-    if (e.shiftKey && document.activeElement === first) {
-      e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault();
-      first.focus();
-    }
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   }
 
   chip.addEventListener('click', () => openModal());
   modalClose.addEventListener('click', closeModal);
-  backdrop.addEventListener('click', (e) => {
-    if (e.target === backdrop) closeModal();
-  });
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
 
   // ---------- Connect / disconnect ----------
   function showConnectError(message) {
@@ -170,6 +179,7 @@
 
   connectForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (demoMode) return;
     clearConnectError();
 
     const gmailUser = gmailUserInput.value.trim();
@@ -194,7 +204,6 @@
         showConnectError((data && data.error) || `Connection failed (HTTP ${r.status}).`);
         return;
       }
-
       appPasswordInput.value = '';
       setConnected(true, data.email);
       closeModal();
@@ -207,9 +216,8 @@
   });
 
   disconnectBtn.addEventListener('click', async () => {
-    try {
-      await fetch('/api/disconnect', { method: 'POST' });
-    } catch {}
+    if (demoMode) return;
+    try { await fetch('/api/disconnect', { method: 'POST' }); } catch {}
     setConnected(false);
     appPasswordInput.value = '';
     gmailUserInput.value = '';
@@ -403,7 +411,7 @@
       sendBtn.innerHTML = '<span class="spinner" aria-hidden="true"></span> Sending…';
       results.setAttribute('aria-busy', 'true');
     } else {
-      sendBtn.disabled = !connected;
+      sendBtn.disabled = demoMode ? false : !connected;
       sendBtn.classList.remove('btn--loading');
       sendBtn.textContent = sendBtn.dataset.label || 'Send emails';
       results.removeAttribute('aria-busy');
@@ -417,12 +425,41 @@
     }
   }
 
+  // ---------- Simulated send (demo mode) ----------
+  function simulateSend(plannedEmails, preSkipped) {
+    renderPlannedRows(plannedEmails, preSkipped);
+    let i = 0;
+    const total = plannedEmails.length;
+
+    function tick() {
+      if (i >= total) {
+        setLoading(false);
+        return;
+      }
+      const email = plannedEmails[i];
+      // Mostly sent, with occasional failures for realism.
+      const roll = Math.random();
+      let status = 'sent';
+      let error;
+      if (roll > 0.92) {
+        status = 'failed';
+        error = 'Mailbox unavailable (simulated)';
+      }
+      applyResult({ email, status, error, index: preSkipped.length + i });
+      i++;
+      setTimeout(tick, 800);
+    }
+
+    // Small delay before the first tick so the "queued" state is visible.
+    setTimeout(tick, 600);
+  }
+
   // ---------- Submit ----------
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     closeEventSource();
 
-    if (!connected) {
+    if (!demoMode && !connected) {
       openModal();
       return showBanner('Connect your Gmail account first.', 'error');
     }
@@ -432,10 +469,43 @@
     if (!subjectInput.value.trim()) return showBanner('Subject is required.', 'error');
     if (!bodyInput.value.trim()) return showBanner('Body is required.', 'error');
 
-    try { await readJsonArray(file); }
+    let allEmails;
+    try { allEmails = await readJsonArray(file); }
     catch (err) { return showBanner(err.message, 'error'); }
 
+    // Build planned + skipped client-side (used by both real and demo flows
+    // for the pre-skipped rows; the server re-derives for the real flow).
+    const seen = new Set();
+    const planned = [];
+    const preSkipped = [];
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    for (const raw of allEmails) {
+      const email = raw.trim();
+      if (!EMAIL_RE.test(email)) {
+        preSkipped.push({ email, status: 'skipped', reason: 'invalid', error: 'Invalid email format.' });
+        continue;
+      }
+      const k = email.toLowerCase();
+      if (seen.has(k)) {
+        preSkipped.push({ email, status: 'skipped', reason: 'duplicate', error: 'Duplicate address.' });
+        continue;
+      }
+      seen.add(k);
+      planned.push(email);
+    }
+
+    if (planned.length === 0 && preSkipped.length === 0) {
+      return showBanner('The file has no usable entries.', 'error');
+    }
+
     setLoading(true);
+
+    if (demoMode) {
+      simulateSend(planned, preSkipped);
+      return;
+    }
+
+    // ---- Real backend flow ----
     renderEmpty('Preparing…', 'Validating and queuing recipients.');
 
     let jobId;
@@ -504,4 +574,7 @@
       }
     };
   });
+
+  // ---------- Boot ----------
+  checkBackend();
 })();
