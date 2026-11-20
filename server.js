@@ -340,6 +340,7 @@ async function runSendLoop(job, { creds, planned, skippedCount, subject, body, f
   for (let i = 0; i < planned.length; i++) {
     const email = planned[i];
     let result;
+
     try {
       if (DRY_RUN) {
         await sleep(200);
@@ -354,19 +355,31 @@ async function runSendLoop(job, { creds, planned, skippedCount, subject, body, f
         });
         result = { email, status: 'sent', messageId: info.messageId };
       }
-      if (!DRY_RUN) quota.recordSuccess(reservationId);
     } catch (err) {
       if (!DRY_RUN) quota.releaseOne(reservationId);
       result = { email, status: 'failed', error: err.message || 'Send failed.' };
     }
 
-    jobs.emit(job, 'result', { ...result, index: skippedCount + i });
+    const eventData = { ...result, index: skippedCount + i };
+    if (result.status === 'sent' && !DRY_RUN) {
+      try {
+        quota.recordSuccess(reservationId);
+      } catch (err) {
+        // SMTP accepted this recipient; report that outcome before failing the job
+        // because the local quota ledger could not be updated safely.
+        jobs.emit(job, 'result', eventData);
+        throw err;
+      }
+    }
+
+    jobs.emit(job, 'result', eventData);
 
     if (i < planned.length - 1) {
       await sleep(DRY_RUN ? 200 : DELAY_MS);
     }
   }
 
+  if (transport) transport.close();
   if (!DRY_RUN) quota.releaseReservations(reservationId);
   const finalQuota = quota.getUsage();
   jobs.emit(job, 'done', { quota: finalQuota });
