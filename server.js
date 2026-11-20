@@ -261,13 +261,20 @@ app.post('/api/send', (req, res) => {
       return res.status(400).json({ error: 'Nothing to send.' });
     }
 
-    const usage = quota.getUsage();
-    if (planned.length > usage.remaining) {
-      return res.status(429).json({
-        error: usage.remaining <= 0
-          ? `Quota exceeded: ${usage.limit} emails per 24 hours. Try again later.`
-          : `Quota exceeded: only ${usage.remaining} send(s) left in the 24-hour window, but ${planned.length} recipient(s) are queued.`,
-      });
+    const reservationId = crypto.randomUUID();
+    let usage = quota.getUsage();
+
+    if (!DRY_RUN) {
+      const reservation = quota.reserve(reservationId, planned.length);
+      if (!reservation.ok) {
+        usage = reservation.usage;
+        return res.status(429).json({
+          error: usage.remaining <= 0
+            ? `Quota exceeded: ${usage.limit} emails per 24 hours. Try again later.`
+            : `Quota exceeded: only ${usage.remaining} send(s) left in the 24-hour window, but ${planned.length} recipient(s) are queued.`,
+        });
+      }
+      usage = reservation.usage;
     }
 
     const job = jobs.createJob();
@@ -288,7 +295,9 @@ app.post('/api/send', (req, res) => {
       subject,
       body,
       fromName: fromName || '',
+      reservationId,
     }).catch((err) => {
+      if (!DRY_RUN) quota.releaseReservations(reservationId);
       console.error('[job error]', err);
       jobs.emit(job, 'error', { error: err.message || 'Job failed.' });
       jobs.finish(job, 'error');
@@ -299,7 +308,7 @@ app.post('/api/send', (req, res) => {
 });
 
 // ---------- Background send loop ----------
-async function runSendLoop(job, { creds, planned, skippedCount, subject, body, fromName }) {
+async function runSendLoop(job, { creds, planned, skippedCount, subject, body, fromName, reservationId }) {
   const fromNameSafe = fromName ? sanitizeHeader(fromName).replace(/"/g, '') : '';
   const fromHeader = fromNameSafe
     ? `"${fromNameSafe}" <${creds.user}>`
@@ -328,8 +337,9 @@ async function runSendLoop(job, { creds, planned, skippedCount, subject, body, f
         });
         result = { email, status: 'sent', messageId: info.messageId };
       }
-      quota.recordSuccess();
+      if (!DRY_RUN) quota.recordSuccess(reservationId);
     } catch (err) {
+      if (!DRY_RUN) quota.releaseOne(reservationId);
       result = { email, status: 'failed', error: err.message || 'Send failed.' };
     }
 
@@ -340,6 +350,7 @@ async function runSendLoop(job, { creds, planned, skippedCount, subject, body, f
     }
   }
 
+  if (!DRY_RUN) quota.releaseReservations(reservationId);
   const finalQuota = quota.getUsage();
   jobs.emit(job, 'done', { quota: finalQuota });
   jobs.finish(job, 'done');
@@ -361,26 +372,36 @@ app.get('/api/send/:jobId/events', (req, res) => {
   res.flushHeaders?.();
 
   const heartbeat = setInterval(() => {
-    try { res.write(': ping\n\n'); } catch {}
+    try { res.write(': ping\\n\\n'); } catch { cleanup(); }
   }, 15000);
 
-  const unsubscribe = jobs.subscribe(job, (evt) => {
-    try {
-      res.write(`event: ${evt.type}\n`);
-      res.write(`data: ${JSON.stringify(evt.data)}\n\n`);
-    } catch {}
-    if (evt.type === 'done' || evt.type === 'error') {
-      cleanup();
-    }
-  });
+  let unsubscribe = () => {};
+  let cleaned = false;
 
   function cleanup() {
+    if (cleaned) return;
+    cleaned = true;
     clearInterval(heartbeat);
     unsubscribe();
     try { res.end(); } catch {}
   }
 
   req.on('close', cleanup);
+
+  unsubscribe = jobs.subscribe(job, (evt) => {
+    if (cleaned) return;
+    try {
+      res.write(`event: ${evt.type}\\n`);
+      res.write(`data: ${JSON.stringify(evt.data)}\\n\\n`);
+    } catch {
+      cleanup();
+      return;
+    }
+    if (evt.type === 'done' || evt.type === 'error') cleanup();
+  });
+
+  // A terminal event may be replayed synchronously before subscribe() returns.
+  if (cleaned) unsubscribe();
 });
 
 // ---------- Quota + health ----------
