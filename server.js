@@ -12,6 +12,9 @@ const nodemailer = require('nodemailer');
 const quota = require('./lib/quota');
 const jobs = require('./lib/jobs');
 
+// Jobs are in-memory; recover reservations left by a previous process at startup.
+quota.recoverReservations();
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DRY_RUN = process.env.DRY_RUN === 'true';
@@ -262,19 +265,27 @@ app.post('/api/send', (req, res) => {
     }
 
     const reservationId = crypto.randomUUID();
-    let usage = quota.getUsage();
+    let usage;
 
-    if (!DRY_RUN) {
-      const reservation = quota.reserve(reservationId, planned.length);
-      if (!reservation.ok) {
+    try {
+      usage = quota.getUsage();
+      if (!DRY_RUN) {
+        const reservation = quota.reserve(reservationId, planned.length);
+        if (!reservation.ok) {
+          usage = reservation.usage;
+          return res.status(429).json({
+            error: usage.remaining <= 0
+              ? `Quota exceeded: ${usage.limit} emails per 24 hours. Try again later.`
+              : `Quota exceeded: only ${usage.remaining} send(s) left in the 24-hour window, but ${planned.length} recipient(s) are queued.`,
+          });
+        }
         usage = reservation.usage;
-        return res.status(429).json({
-          error: usage.remaining <= 0
-            ? `Quota exceeded: ${usage.limit} emails per 24 hours. Try again later.`
-            : `Quota exceeded: only ${usage.remaining} send(s) left in the 24-hour window, but ${planned.length} recipient(s) are queued.`,
-        });
       }
-      usage = reservation.usage;
+    } catch (err) {
+      console.error('[quota error]', err);
+      return res.status(500).json({
+        error: 'Unable to verify sending quota. Check the local quota data before retrying.',
+      });
     }
 
     const job = jobs.createJob();
@@ -297,7 +308,13 @@ app.post('/api/send', (req, res) => {
       fromName: fromName || '',
       reservationId,
     }).catch((err) => {
-      if (!DRY_RUN) quota.releaseReservations(reservationId);
+      if (!DRY_RUN) {
+        try {
+          quota.releaseReservations(reservationId);
+        } catch (quotaErr) {
+          console.error('[quota cleanup error]', quotaErr);
+        }
+      }
       console.error('[job error]', err);
       jobs.emit(job, 'error', { error: err.message || 'Job failed.' });
       jobs.finish(job, 'error');
