@@ -419,7 +419,7 @@ app.get('/api/send/:jobId/events', (req, res) => {
     try { res.end(); } catch {}
   }
 
-  req.on('close', cleanup);
+  res.on('close', cleanup);
 
   unsubscribe = jobs.subscribe(job, (evt) => {
     if (cleaned) return;
