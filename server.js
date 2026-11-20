@@ -337,6 +337,7 @@ async function runSendLoop(job, { creds, planned, skippedCount, subject, body, f
     transport = buildTransporter(creds);
   }
 
+  try {
   for (let i = 0; i < planned.length; i++) {
     const email = planned[i];
     let result;
@@ -378,8 +379,10 @@ async function runSendLoop(job, { creds, planned, skippedCount, subject, body, f
       await sleep(DRY_RUN ? 200 : DELAY_MS);
     }
   }
+  } finally {
+    if (transport) transport.close();
+  }
 
-  if (transport) transport.close();
   if (!DRY_RUN) quota.releaseReservations(reservationId);
   const finalQuota = quota.getUsage();
   jobs.emit(job, 'done', { quota: finalQuota });
