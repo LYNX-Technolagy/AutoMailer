@@ -87,6 +87,9 @@ test('dry-run campaign completes without creating or consuming real send quota',
   const { jobId } = await send.json();
   assert.ok(jobId);
 
+  // Wait until the short simulated campaign is complete to exercise terminal-event replay.
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+
   const events = await fetch(`${baseUrl}/api/send/${jobId}/events`, {
     headers: { Cookie: cookie },
   });
