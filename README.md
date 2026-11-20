@@ -6,7 +6,8 @@ Upload a JSON array of email addresses, write a subject and body, and AutoMailer
 - **Failures don't stop the loop** — each recipient's outcome is reported independently.
 - **Live progress** via Server-Sent Events.
 - **Validation everywhere** — invalid emails, duplicates, malformed JSON, and quota overflow are all caught and reported.
-- **50 successful sends per rolling 24 hours** (per install).
+- **50 successful sends per rolling 24 hours** (per install); active campaigns reserve quota so concurrent jobs cannot overbook it.
+- **Dry-run campaigns do not consume real quota.** If the app stops unexpectedly, unresolved in-flight reservations are counted conservatively because Gmail may already have accepted those messages.
 
 Built by [LYNX Technolagy](mailto:lynxtechza@gmail.com).
 
@@ -30,6 +31,12 @@ npm run dev
 ```
 
 Then open http://localhost:3000/app, click Connect Gmail in the top-right, and follow the instructions in the modal.
+
+Run the automated regression tests with:
+
+```bash
+npm test
+```
 
 npm run setup asks two things — a port (default 3000) and whether to enable dry-run mode — then writes a .env file with a generated session secret. You never edit .env by hand.
 
