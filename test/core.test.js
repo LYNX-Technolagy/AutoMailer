@@ -87,16 +87,17 @@ test('expired successful sends leave the rolling 24-hour window', () => {
   }
 });
 
-test('startup recovery releases reservations left by interrupted in-memory jobs', () => {
+test('startup recovery conservatively counts reservations from interrupted jobs', () => {
   const fixture = temporaryQuotaStore({ limit: 4 });
   try {
     fixture.store.reserve('interrupted-job', 3);
     const restarted = createQuotaStore({ filePath: fixture.filePath, limit: 4 });
     assert.equal(restarted.getUsage().reserved, 3);
-    restarted.recoverReservations();
+    assert.equal(restarted.recoverReservations(), 3);
 
+    assert.equal(restarted.getUsage().used, 3);
     assert.equal(restarted.getUsage().reserved, 0);
-    assert.equal(restarted.getUsage().remaining, 4);
+    assert.equal(restarted.getUsage().remaining, 1);
   } finally {
     fixture.cleanup();
   }
