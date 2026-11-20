@@ -92,6 +92,8 @@ test('startup recovery releases reservations left by interrupted in-memory jobs'
   try {
     fixture.store.reserve('interrupted-job', 3);
     const restarted = createQuotaStore({ filePath: fixture.filePath, limit: 4 });
+    assert.equal(restarted.getUsage().reserved, 3);
+    restarted.recoverReservations();
 
     assert.equal(restarted.getUsage().reserved, 0);
     assert.equal(restarted.getUsage().remaining, 4);
