@@ -20,6 +20,7 @@ const PORT = process.env.PORT || 3000;
 const DRY_RUN = process.env.DRY_RUN === 'true';
 const DELAY_MS = 2000;
 const MAX_FILE_SIZE = 1024 * 1024;
+const MAX_RECIPIENTS = 1000;
 const SESSION_MAX_AGE_MS = 60 * 60 * 1000; // 1 hour
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -33,8 +34,15 @@ if (!sessionSecret) {
 }
 
 // ---------- Middleware ----------
-app.set('trust proxy', 1);
-app.use(express.json());
+// AutoMailer is self-hosted. Trust no proxy unless the user
+// explicitly configures a reverse-proxy deployment.
+const TRUST_PROXY_HOPS = Number(process.env.TRUST_PROXY_HOPS || 0);
+
+if (Number.isInteger(TRUST_PROXY_HOPS) && TRUST_PROXY_HOPS > 0) {
+  app.set('trust proxy', TRUST_PROXY_HOPS);
+}
+
+app.use(express.json({ limit: '100kb' }));
 
 app.use(
   session({
@@ -45,7 +53,7 @@ app.use(
     cookie: {
       httpOnly: true,
       sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.COOKIE_SECURE === 'true',
       maxAge: SESSION_MAX_AGE_MS,
     },
     store: new MemoryStore({
@@ -63,12 +71,26 @@ app.get('/app', (req, res) => {
 // ---------- Multer: memory, .json only, 1MB ----------
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: MAX_FILE_SIZE, files: 1 },
+
+  limits: {
+    fileSize: MAX_FILE_SIZE,
+    files: 1,
+    fields: 5,
+    fieldSize: 128 * 1024,
+    parts: 6,
+    fieldNameSize: 100,
+    fieldArrayIndexLimit: 20,
+  },
+
   fileFilter: (req, file, cb) => {
     const looksJson =
       file.mimetype === 'application/json' ||
       file.originalname.toLowerCase().endsWith('.json');
-    if (!looksJson) return cb(new Error('Only .json files are allowed.'));
+
+    if (!looksJson) {
+      return cb(new Error('Only .json files are allowed.'));
+    }
+
     cb(null, true);
   },
 });
@@ -107,6 +129,11 @@ function parseRecipients(buffer) {
   if (!Array.isArray(data)) {
     return { error: 'JSON must be a top-level array of email strings.' };
   }
+  if (data.length > MAX_RECIPIENTS) {
+  return {
+    error: `Too many recipients. The maximum is ${MAX_RECIPIENTS} per campaign.`,
+  };
+}
   if (data.some((v) => typeof v !== 'string')) {
     return { error: 'Every entry in the array must be a string.' };
   }
@@ -118,6 +145,30 @@ function getSessionCreds(req) {
   if (!c || typeof c.user !== 'string' || typeof c.pass !== 'string') return null;
   if (!c.user || !c.pass) return null;
   return { user: c.user, pass: c.pass };
+}
+
+function establishGmailSession(req, res, credentials, responseData) {
+  req.session.regenerate((regenerateErr) => {
+    if (regenerateErr) {
+      console.error('[session] Unable to regenerate session');
+      return res.status(500).json({
+        error: 'Unable to establish a secure Gmail Session. PLease try again'
+      });
+    }
+
+    req.session.gmail = credentials;
+
+    req.session.save((saveErr) => {
+      if (saveErr) {
+        console.error('[session] Unable to save authenticated session. Please try again');
+        return res.status(500).json({
+          error: 'Unable to save the Gmail session. Please try again'
+        }); 
+      }
+
+      return res.json(responseData);
+    });
+  });
 }
 
 function buildTransporter(creds) {
@@ -132,10 +183,17 @@ function buildTransporter(creds) {
 // ---------- Connect / disconnect / status ----------
 app.post('/api/connect', (req, res) => {
   const { gmailUser, appPassword } = req.body || {};
+
   if (typeof gmailUser !== 'string' || !EMAIL_RE.test(gmailUser.trim())) {
-    return res.status(400).json({ error: 'Enter a valid Gmail address.' });
+    return res.status(400).json({
+      error: 'Enter a valid Gmail address.',
+    });
   }
-  if (typeof appPassword !== 'string' || appPassword.replace(/\s+/g, '').length !== 16) {
+
+  if (
+    typeof appPassword !== 'string' ||
+    appPassword.replace(/\s+/g, '').length !== 16
+  ) {
     return res.status(400).json({
       error: 'App Password must be 16 characters (spaces are ignored).',
     });
@@ -145,9 +203,44 @@ app.post('/api/connect', (req, res) => {
   const pass = appPassword.replace(/\s+/g, '');
 
   if (DRY_RUN) {
-    req.session.gmail = { user, pass };
-    return res.json({ connected: true, email: user, verified: false, dryRun: true });
+    return establishGmailSession(
+      req,
+      res,
+      { user, pass },
+      {
+        connected: true,
+        email: user,
+        verified: false,
+        dryRun: true,
+      }
+    );
   }
+
+  const transport = buildTransporter({ user, pass });
+
+  transport.verify((err) => {
+    transport.close();
+
+    if (err) {
+      console.warn('[gmail] Credential verification failed.');
+
+      return res.status(400).json({
+        error: 'Gmail rejected these credentials. Check the address and App Password.',
+      });
+    }
+
+    return establishGmailSession(
+      req,
+      res,
+      { user, pass },
+      {
+        connected: true,
+        email: user,
+        verified: true,
+      }
+    );
+  });
+});
 
   const transport = buildTransporter({ user, pass });
   transport.verify((err) => {
@@ -307,19 +400,7 @@ app.post('/api/send', (req, res) => {
       body,
       fromName: fromName || '',
       reservationId,
-    }).catch((err) => {
-      if (!DRY_RUN) {
-        try {
-          quota.releaseReservations(reservationId);
-        } catch (quotaErr) {
-          console.error('[quota cleanup error]', quotaErr);
-        }
-      }
-      console.error('[job error]', err);
-      jobs.emit(job, 'error', { error: err.message || 'Job failed.' });
-      jobs.finish(job, 'error');
-    });
-
+    }).
     return res.status(202).json({ jobId: job.id });
   });
 });
@@ -357,8 +438,20 @@ async function runSendLoop(job, { creds, planned, skippedCount, subject, body, f
         result = { email, status: 'sent', messageId: info.messageId };
       }
     } catch (err) {
-      if (!DRY_RUN) quota.releaseOne(reservationId);
-      result = { email, status: 'failed', error: err.message || 'Send failed.' };
+      if (!DRY_RUN) {
+        quota.releaseOne(reservationID)
+      }
+
+      console.warm(
+        '[send] Recipient failed:',
+        err.code || err.name || 'STMP_ERROR'
+      );
+
+      result = {
+        email,
+        status: 'failed',
+        error: 'Gmail could not send this message. Check your connection'
+      }
     }
 
     const eventData = { ...result, index: skippedCount + i };
@@ -454,11 +547,33 @@ app.get('/api/health', (req, res) => {
 
 // ---------- Error fallback ----------
 app.use((err, req, res, next) => {
-  console.error('[error]', err);
-  res.status(500).json({ error: 'Unexpected server error.' });
-});
+  if (res.headersSend) {
+    return next(err);
+  }
 
-app.listen(PORT, () => {
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({
+      error: 'Request contains invalid JSON.'
+    });
+  }
+
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({
+      error: 'Request body is too large.'
+    });
+  }
+
+  console.error('[error]', err.name || 'ApplicationError');
+
+  return res.status(500).json({
+    error: 'Unexpected server error'
+  });
+  
+})
+
+const HOST = process.env.HOST || '127.0.0.1';
+
+app.listen(PORT, HOST, () => {
   console.log(`AutoMailer running at http://localhost:${PORT}`);
   console.log(`Mode: ${DRY_RUN ? 'DRY RUN (no emails will be sent)' : 'LIVE (SMTP enabled)'}`);
 });
